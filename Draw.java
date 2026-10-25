@@ -79,30 +79,6 @@ public class Draw extends JPanel{
             g.fillPolygon(xpoints, ypoints, 3);
         }
 
-        /* 
-
-        int x1points[] = {(int)(width*0.1) - offset, (int)(width*0.3) - offset, (int)(width*0.5) - offset};
-        int y1points[] = {(int)(height-(0.2)*height), (int)(height-(0.6)*height), (int)(height-(0.2)*height)};
-        g.fillPolygon(x1points, y1points, 3);
-
-        int x2points[] = {(int)(width*0.7) - offset, (int)(width*0.9) - offset, (int)(width*1.1) - offset};
-        int y2points[] = {(int)(height-(0.2)*height), (int)(height-(0.6)*height), (int)(height-(0.2)*height)};
-        g.fillPolygon(x2points, y2points, 3);
-
-        int x3points[] = {(int)(width*1.3) - offset, (int)(width*1.5) - offset, (int)(width*1.7) - offset};
-        int y3points[] = {(int)(height-(0.2)*height), (int)(height-(0.8)*height), (int)(height-(0.2)*height)};
-        g.fillPolygon(x3points, y3points, 3);
-
-        int x4points[] = {(int)(width*1.9) - offset, (int)(width*2.1) - offset, (int)(width*2.3) - offset};
-        int y4points[] = {(int)(height-(0.2)*height), (int)(height-(0.6)*height), (int)(height-(0.2)*height)};
-        g.fillPolygon(x4points, y4points, 3);
-
-        int x5points[] = {(int)(width*2.5) - offset, (int)(width*2.7) - offset, (int)(width*2.9) - offset};
-        int y5points[] = {(int)(height-(0.2)*height), (int)(height-(0.7)*height), (int)(height-(0.2)*height)};
-        g.fillPolygon(x5points, y5points, 3);
-
-        */
-
 
     }
 
