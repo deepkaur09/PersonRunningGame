@@ -29,14 +29,21 @@ public class RidgeRush{
 
    public static void main(String[] args) {
       JFrame frame = new JFrame();
+      frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+      frame.setResizable(false);
+
+
       Draw d = new Draw();
       new RidgeRush();
-      d.draw();
       d.setBackground(Color.decode("#87d7eb"));
       frame.add(d);
 
-      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
       frame.setVisible(true);
+      d.draw();
+
+
+      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+      
    }
 }
