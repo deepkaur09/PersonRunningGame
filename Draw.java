@@ -7,12 +7,15 @@ import java.util.ArrayList;
 
 public class Draw extends JPanel {
     int speed = 5;
+    int ticksUntilNextObstacle = 60;
     ArrayList<Mountain> mountains = new ArrayList<Mountain>();
+    ArrayList<Obstacle> obstacles = new ArrayList<Obstacle>();
 
     // creating a player object
     Player player;
 
-    double[][] table = {
+    // different widths and peaks for mountains
+    double[][] mountainTypes = {
             { 0.4, 0.6 }, // width and peak of 1st mountain
             { 0.4, 0.75 }, // width and peak of 2nd mountain
             { 0.4, 0.4 }, // width and peak of 3rd mountain
@@ -24,35 +27,45 @@ public class Draw extends JPanel {
             { 0.4, 0.35 }, // width and peak of 9th mountain
             { 0.4, 0.65 } // width and peak of 10th mountain
     };
+
+    // different sizes for obstacles
+    double[][] obstacleTypes = {
+            { 0.03, 0.04 },
+            { 0.02, 0.03 },
+            { 0.04, 0.05 }
+    };
+
     Random random = new Random();
     int randomIndex;
+    int obstacleIndex;
 
-    public Draw(){
-        //Setting up keys
+    int surfaceHeight = 0; // height of player from the mountain
+    public Draw() {
+        // Setting up keys
         getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("SPACE"), "jump");
         getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("DOWN"), "ducked");
         getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("released DOWN"), "unducked");
 
-        //action taker for jumping
-        getActionMap().put("jump", new AbstractAction(){
-            public void actionPerformed(ActionEvent e){
-                if(player != null && player.heightAboveSurface == 0){
+        // action taker for jumping
+        getActionMap().put("jump", new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                if (player != null && player.heightAboveSurface == 0) {
                     player.velocityY = 15;
                 }
             }
         });
-        //action taker for down/ducking
-        getActionMap().put("ducked", new AbstractAction(){
-            public void actionPerformed(ActionEvent e){
-                if(player != null && player.heightAboveSurface == 0){
+        // action taker for down/ducking
+        getActionMap().put("ducked", new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                if (player != null && player.heightAboveSurface == 0) {
                     player.ducking = true;
                 }
             }
         });
-        //action taker for unducking
-        getActionMap().put("unducked", new AbstractAction(){
-            public void actionPerformed(ActionEvent e){
-                if(player != null){
+        // action taker for unducking
+        getActionMap().put("unducked", new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                if (player != null) {
                     player.ducking = false;
                 }
             }
@@ -69,9 +82,12 @@ public class Draw extends JPanel {
                 }
 
                 if (player == null) {
-                    //used getHeight() to set the size of the player (make circle) based on the height of the window
+                    // used getHeight() to set the size of the player (make circle) based on the
+                    // height of the window
                     player = new Player((int) (0.035 * getHeight()), (int) (0.035 * getHeight()));
                 }
+
+                double groundY = getHeight() * 0.8; // ground level
 
                 // move mountains and remove mountains that are off the screen
                 for (Mountain mountain : mountains) {
@@ -89,55 +105,54 @@ public class Draw extends JPanel {
 
                 // adding first 3 mountains before edge goes part getWidth()
                 while (edge < getWidth()) {
-                    randomIndex = random.nextInt(table.length);
-                    mountains.add(new Mountain(edge, table[randomIndex][1], table[randomIndex][0]));
-                    edge += (int) (table[randomIndex][0] * getWidth());
+                    randomIndex = random.nextInt(mountainTypes.length);
+                    mountains.add(new Mountain(edge, mountainTypes[randomIndex][1], mountainTypes[randomIndex][0]));
+                    edge += (int) (mountainTypes[randomIndex][0] * getWidth());
                 }
 
                 // working on player movement
                 if (player != null) {
                     int playerY = 0; // y position of player
-                    int surfaceHeight = 0; // height of player from the mountain
-                    double groundY = getHeight() * 0.8; // ground level
+                    
+                    surfaceHeight = calculateSurfaceHeight(player.x + player.wide / 2);
 
-
-                    for (Mountain mountain : mountains) {
-                        double startPx = mountain.start; // start of moutain in pixels
-                        double widthPx = mountain.width * getWidth(); // width of mountain in pixels
-                        double endPx = startPx + widthPx; // end of mountain in pixels
-                        int centerOfPlayer = player.x + player.wide / 2;
-
-                        double distanceIn = centerOfPlayer - startPx; // distance of player from start of mountain in pixels
-
-                        double mountainHeight; // height of mountain from ground/grass level
-                        double peakY; // peak of mountain
-
-
-                        if (startPx <= centerOfPlayer && centerOfPlayer <= endPx) {
-                            peakY = getHeight() - (mountain.peak * getHeight());
-                            mountainHeight = groundY - peakY;
-
-                            if (distanceIn < widthPx / 2) {
-                                surfaceHeight = (int) (mountainHeight * (distanceIn / (widthPx / 2)));
-                            } else {
-                                surfaceHeight = (int) (mountainHeight * ((widthPx - distanceIn) / (widthPx / 2)));
-                            }
-                            break;
-                        }
-
-                    }
                     player.heightAboveSurface += player.velocityY;
                     player.velocityY -= 1.5; // gravity gets substracted from velocityY
-                    
+
                     if (player.heightAboveSurface <= 0) {
                         player.heightAboveSurface = 0;
                         player.velocityY = 0;
-                    } 
-
+                    }
 
                     playerY = (int) (groundY - player.tall - surfaceHeight - player.heightAboveSurface);
                     player.update(playerY);
 
+                }
+
+                // working on obstacles
+
+                //keeping the objects move to left
+                for (Obstacle obstacle : obstacles) {
+                    obstacle.move(speed);
+                }
+
+                //removing from list
+                obstacles.removeIf(obstacle -> obstacle.start + obstacle.obstacleWidth * getWidth() < 0);
+
+                ticksUntilNextObstacle--;
+
+                //add obstacle only after ticksUntilNextObstacle becomes less than 0
+                if (ticksUntilNextObstacle <= 0) {
+                    obstacleIndex = random.nextInt(obstacleTypes.length);
+                    obstacles.add(new Obstacle(getWidth(), obstacleTypes[obstacleIndex][0], obstacleTypes[obstacleIndex][1]));
+                    ticksUntilNextObstacle = 40 + random.nextInt(80);
+                }
+
+                //calculating the position screenY for obstacle/how high it should be
+                for (Obstacle obstacle : obstacles) {
+                    int obstacleSurface = calculateSurfaceHeight((int) (obstacle.start + (obstacle.obstacleWidth * getWidth())/ 2));
+                    int screenY = (int) (groundY - obstacle.obstacleHeight * getHeight() - obstacleSurface - obstacle.heightAboveGround * getHeight());
+                    obstacle.screenY = screenY;
                 }
 
                 // repaint the screen
@@ -145,6 +160,36 @@ public class Draw extends JPanel {
             }
         });
         timer.start();
+    }
+
+    // @par player/obstacles's center
+    public int calculateSurfaceHeight(int x) {
+        int surfaceH = 0;
+        for (Mountain mountain : mountains) {
+            double startPx = mountain.start; // start of moutain in pixels
+            double widthPx = mountain.width * getWidth(); // width of mountain in pixels
+            double endPx = startPx + widthPx; // end of mountain in pixels
+            int centerOfObject = x;
+
+            double distanceIn = centerOfObject - startPx; // distance of object from start of mountain in pixels
+
+            double mountainHeight; // height of mountain from ground/grass level
+            double peakY; // peak of mountain
+
+            if (startPx <= centerOfObject && centerOfObject <= endPx) {
+                peakY = getHeight() - (mountain.peak * getHeight());
+                mountainHeight = (getHeight() * 0.8) - peakY;
+
+                if (distanceIn < widthPx / 2) {
+                    surfaceH = (int) (mountainHeight * (distanceIn / (widthPx / 2)));
+                } else {
+                    surfaceH = (int) (mountainHeight * ((widthPx - distanceIn) / (widthPx / 2)));
+                }
+                break;
+            }
+        }
+        return surfaceH;
+
     }
 
     @Override
@@ -177,23 +222,34 @@ public class Draw extends JPanel {
         g.setColor(Color.decode("#4800ff"));
 
         if (player != null) {
-            //bottom circle
+            // bottom circle
             g.fillOval(player.x, player.y, player.wide, player.tall);
-            //upper circle when ducked
-            if(player.ducking){
-                g.fillOval(player.x + player.wide, player.y - player.tall, player.wide, player.tall);
+            // upper circle when ducked
+            if (player.ducking) {
+                g.fillOval(player.x + player.wide, player.y, player.wide, player.tall);
             }
-            //upper circle when in usual
-            else{
+            // upper circle when in usual
+            else {
                 g.fillOval(player.x, player.y - player.tall, player.wide, player.tall);
             }
             g.setColor(Color.BLACK);
-            //g.drawLine(player.x, player.y - (player.tall/2), player.x + (player.wide/2), player.y - (player.tall/3));
-            //g.drawLine(player.x + player.wide, player.y - (player.tall/2), player.x + player.wide + (player.wide/2), player.y - (player.tall/3));
-            //g.fillRect(player.x - player.wide/2, player.y - player.tall*(2), player.wide * 2, player.tall*(2)); 
+            // g.drawLine(player.x, player.y - (player.tall/2), player.x + (player.wide/2),
+            // player.y - (player.tall/3));
+            // g.drawLine(player.x + player.wide, player.y - (player.tall/2), player.x +
+            // player.wide + (player.wide/2), player.y - (player.tall/3));
+            // g.fillRect(player.x - player.wide/2, player.y - player.tall*(2), player.wide
+            // * 2, player.tall*(2));
 
         }
 
+        //drawing the obstacle
+        for(Obstacle obstacle: obstacles){
+            g.setColor(Color.DARK_GRAY);
+            int obsWidth = (int) (obstacle.obstacleWidth * width);
+            int obsHeight = (int) (obstacle.obstacleHeight * height);
+
+            g.fillOval((int)obstacle.start , obstacle.screenY, obsWidth , obsHeight);
+        }
     }
 
 }
