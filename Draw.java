@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.Random;
 import java.util.ArrayList;
+//import java.math.*;
 
 public class Draw extends JPanel {
     int speed = 5;
@@ -16,16 +17,16 @@ public class Draw extends JPanel {
 
     // different widths and peaks for mountains
     double[][] mountainTypes = {
-            { 0.4, 0.6 }, // width and peak of 1st mountain
-            { 0.4, 0.75 }, // width and peak of 2nd mountain
+            { 0.4, 0.3 }, // width and peak of 1st mountain
+            { 0.4, 0.35 }, // width and peak of 2nd mountain
             { 0.4, 0.4 }, // width and peak of 3rd mountain
-            { 0.4, 0.5 }, // width and peak of 4th mountain
-            { 0.4, 0.8 }, // width and peak of 5th mountain
-            { 0.4, 0.7 }, // width and peak of 6th mountain
-            { 0.4, 0.3 }, // width and peak of 7th mountain
-            { 0.4, 0.55 }, // width and peak of 8th mountain
-            { 0.4, 0.35 }, // width and peak of 9th mountain
-            { 0.4, 0.65 } // width and peak of 10th mountain
+            { 0.4, 0.45 }, // width and peak of 4th mountain
+            { 0.4, 0.5 }, // width and peak of 5th mountain
+            { 0.4, 0.55 }, // width and peak of 6th mountain
+            { 0.4, 0.58 }, // width and peak of 7th mountain
+            { 0.4, 0.42 }, // width and peak of 8th mountain
+            { 0.4, 0.37 }, // width and peak of 9th mountain
+            { 0.4, 0.44 } // width and peak of 10th mountain
     };
 
     // different sizes for obstacles
@@ -40,6 +41,7 @@ public class Draw extends JPanel {
     int obstacleIndex;
 
     int surfaceHeight = 0; // height of player from the mountain
+
     public Draw() {
         // Setting up keys
         getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("SPACE"), "jump");
@@ -50,7 +52,7 @@ public class Draw extends JPanel {
         getActionMap().put("jump", new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
                 if (player != null && player.heightAboveSurface == 0) {
-                    player.velocityY = 15;
+                    player.velocityY = 20;
                 }
             }
         });
@@ -113,7 +115,7 @@ public class Draw extends JPanel {
                 // working on player movement
                 if (player != null) {
                     int playerY = 0; // y position of player
-                    
+
                     surfaceHeight = calculateSurfaceHeight(player.x + player.wide / 2);
 
                     player.heightAboveSurface += player.velocityY;
@@ -131,28 +133,41 @@ public class Draw extends JPanel {
 
                 // working on obstacles
 
-                //keeping the objects move to left
+                // keeping the objects move to left
                 for (Obstacle obstacle : obstacles) {
                     obstacle.move(speed);
                 }
 
-                //removing from list
+                // removing from list
                 obstacles.removeIf(obstacle -> obstacle.start + obstacle.obstacleWidth * getWidth() < 0);
 
                 ticksUntilNextObstacle--;
 
-                //add obstacle only after ticksUntilNextObstacle becomes less than 0
+                // add obstacle only after ticksUntilNextObstacle becomes less than 0
                 if (ticksUntilNextObstacle <= 0) {
                     obstacleIndex = random.nextInt(obstacleTypes.length);
-                    obstacles.add(new Obstacle(getWidth(), obstacleTypes[obstacleIndex][0], obstacleTypes[obstacleIndex][1]));
-                    ticksUntilNextObstacle = 40 + random.nextInt(80);
-                }
+                    boolean isSafe = isSafeSpawn(getWidth(), obstacleTypes[obstacleIndex][0] * getWidth());
+                    if (isSafe) {
+                        Obstacle obs = new Obstacle(getWidth(), obstacleTypes[obstacleIndex][0],
+                                obstacleTypes[obstacleIndex][1]);
+                        obstacles.add(obs);
+                        ticksUntilNextObstacle = 40 + random.nextInt(80);
 
-                //calculating the position screenY for obstacle/how high it should be
-                for (Obstacle obstacle : obstacles) {
-                    int obstacleSurface = calculateSurfaceHeight((int) (obstacle.start + (obstacle.obstacleWidth * getWidth())/ 2));
-                    int screenY = (int) (groundY - obstacle.obstacleHeight * getHeight() - obstacleSurface - obstacle.heightAboveGround * getHeight());
-                    obstacle.screenY = screenY;
+                        int centerSurface = calculateSurfaceHeight(
+                                (int) (obs.start + (obs.obstacleWidth * getWidth()) / 2));
+                        int leftSurface = calculateSurfaceHeight((int) (obs.start));
+                        int rightSurface = calculateSurfaceHeight((int) (obs.start + obs.obstacleWidth * getWidth()));
+                        int rise = rightSurface - leftSurface;
+                        obs.angle = Math.atan2(rise, obs.obstacleWidth * getWidth());
+
+                        int screenY = (int) (groundY - obs.obstacleHeight * getHeight() - centerSurface
+                                - obs.heightAboveGround * getHeight());
+                        obs.screenY = screenY;
+
+                    } else {
+                        ticksUntilNextObstacle = 2;
+                    }
+
                 }
 
                 // repaint the screen
@@ -162,7 +177,7 @@ public class Draw extends JPanel {
         timer.start();
     }
 
-    // @par player/obstacles's center
+    // @par player center
     public int calculateSurfaceHeight(int x) {
         int surfaceH = 0;
         for (Mountain mountain : mountains) {
@@ -192,18 +207,44 @@ public class Draw extends JPanel {
 
     }
 
+    public boolean isSafeSpawn(double obsStart, double obsWidth) {
+        for (Mountain mountain : mountains) {
+            double startPx = mountain.start; // start of moutain in pixels
+            double widthPx = mountain.width * getWidth(); // width of mountain in pixels
+            double endPx = startPx + widthPx; // end of mountain in pixels
+            double margin = 0.03 * getWidth();
+
+            double distanceIn = obsStart - startPx; // distance of object from start of mountain in pixels
+
+            if (startPx <= obsStart && obsStart <= endPx) {
+
+                if (obsStart - margin <= startPx || obsStart + obsWidth + margin >= endPx) {
+                    return false;
+                }
+
+                if (distanceIn + obsWidth + margin >= widthPx / 2 && distanceIn - margin <= widthPx / 2) {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public void paintComponent(Graphics g) {
-        super.paintComponent(g);
+        Graphics2D g2D = (Graphics2D) g;
+        super.paintComponent(g2D);
         int height = getHeight();
         int width = getWidth();
 
         // colorset and drawing for ground
-        g.setColor(Color.decode("#87eba7"));
-        g.fillRect(0, (int) (height - (0.2) * height), width, (int) (0.2 * height));
+        g2D.setColor(Color.decode("#87eba7"));
+        g2D.fillRect(0, (int) (height - (0.2) * height), width, (int) (0.2 * height));
 
         // colorset and drawing for mountains
-        g.setColor(Color.decode("#8B4513"));
+        g2D.setColor(Color.decode("#8B4513"));
 
         for (int i = 0; i < mountains.size(); i++) {
             Mountain mountain = mountains.get(i);
@@ -215,24 +256,24 @@ public class Draw extends JPanel {
             int xpoints[] = { mountainStart, mid, end };
             int ypoints[] = { (int) (height - (0.2) * height), (int) (height - mountainPeak),
                     (int) (height - (0.2) * height) };
-            g.fillPolygon(xpoints, ypoints, 3);
+            g2D.fillPolygon(xpoints, ypoints, 3);
         }
 
         // colorset and drawing for player
-        g.setColor(Color.decode("#4800ff"));
+        g2D.setColor(Color.decode("#4800ff"));
 
         if (player != null) {
             // bottom circle
-            g.fillOval(player.x, player.y, player.wide, player.tall);
+            g2D.fillOval(player.x, player.y, player.wide, player.tall);
             // upper circle when ducked
             if (player.ducking) {
-                g.fillOval(player.x + player.wide, player.y, player.wide, player.tall);
+                g2D.fillOval(player.x + player.wide, player.y, player.wide, player.tall);
             }
             // upper circle when in usual
             else {
-                g.fillOval(player.x, player.y - player.tall, player.wide, player.tall);
+                g2D.fillOval(player.x, player.y - player.tall, player.wide, player.tall);
             }
-            g.setColor(Color.BLACK);
+            g2D.setColor(Color.BLACK);
             // g.drawLine(player.x, player.y - (player.tall/2), player.x + (player.wide/2),
             // player.y - (player.tall/3));
             // g.drawLine(player.x + player.wide, player.y - (player.tall/2), player.x +
@@ -242,13 +283,19 @@ public class Draw extends JPanel {
 
         }
 
-        //drawing the obstacle
-        for(Obstacle obstacle: obstacles){
-            g.setColor(Color.DARK_GRAY);
+        // drawing the obstacle
+        for (Obstacle obstacle : obstacles) {
+            Graphics2D og = (Graphics2D) g2D.create();
+            og.setColor(Color.DARK_GRAY);
             int obsWidth = (int) (obstacle.obstacleWidth * width);
             int obsHeight = (int) (obstacle.obstacleHeight * height);
+            int pivotX = (int) (obstacle.start + (obstacle.obstacleWidth * getWidth()) / 2);
+            int pivotY = obstacle.screenY + obsHeight;
 
-            g.fillOval((int)obstacle.start , obstacle.screenY, obsWidth , obsHeight);
+            // drawing tilted obstacles
+            og.rotate(-obstacle.angle, pivotX, pivotY);
+            og.fillRect((int) obstacle.start, obstacle.screenY, obsWidth, obsHeight);
+            og.dispose();
         }
     }
 

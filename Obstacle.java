@@ -2,6 +2,7 @@
 public class Obstacle {
     double start; //starting pos for obstacle
     int screenY; //top edge of the obstacle in pixels
+    double angle; //angle at which obstacle is inclined
     double obstacleWidth; ///width of an obstacle
     double obstacleHeight; //height of an obsracle
     double heightAboveGround = 0; //pos obstacles should be above ground
