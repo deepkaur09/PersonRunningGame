@@ -1,5 +1,5 @@
 public class Player {
-    final int x = 100; //x position of player
+    int x = 100; //x position of player
     int y; //y position of player
     double heightAboveSurface = 0; //height of player from the mountain
     double velocityY = 0; //velocity of player in y direction
