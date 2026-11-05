@@ -14,7 +14,7 @@ public class Draw extends JPanel {
     int incSpeedAfterTicks = 600;
     int tickCount = 0;
     int ticksUntilNextObstacle = 60;
-    int ticksUntilNextEnergy = 80;
+    int ticksUntilNextEnergy = 70;
     ArrayList<Mountain> mountains = new ArrayList<Mountain>();
     ArrayList<Obstacle> obstacles = new ArrayList<Obstacle>();
     ArrayList<Energy> energyLevel = new ArrayList<Energy>();
@@ -93,7 +93,9 @@ public class Draw extends JPanel {
                     speed = 5;
                     tickCount = 0;
                     energyLevel.clear();
-                    ticksUntilNextEnergy = 80;
+                    ticksUntilNextEnergy = 70;
+                    playerEnergy = 1000;
+                    repaint();
                     timer.start();
                 }
             }
@@ -236,11 +238,21 @@ public class Draw extends JPanel {
 
                 //adding energy to the game
                 if(ticksUntilNextEnergy <= 0){
-                    ticksUntilNextEnergy = 80 + random.nextInt(10);
+                    ticksUntilNextEnergy = 70 + random.nextInt(10);
                     Energy en = new Energy(getWidth());
-                    energyLevel.add(en);
+
                     int surH = calculateSurfaceHeight((int) (en.posX + en.width * getHeight() / 2)); // keeping in terms of height
                     en.posOnMountain = (int) (groundY - en.height * getHeight() - surH - 0.06 * getHeight());
+                    energyLevel.add(en);
+
+                    for(Obstacle obstacle : obstacles){
+                        if(getEnergyBox(en).intersects(getObstacleBox(obstacle))){
+                            ticksUntilNextEnergy = 2;
+                            energyLevel.remove(en);
+                            break;
+                        }
+                    }
+
                 }
 
                 //moving the energy to left
